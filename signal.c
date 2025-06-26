@@ -674,9 +674,12 @@ signal_ignored(int sig)
     if (sigaction(sig, NULL, &old) < 0) return FALSE;
     func = old.sa_handler;
 #else
-    // TODO: this is not a thread-safe way to do it. Needs lock.
-    sighandler_t old = signal(sig, SIG_DFL);
+    static rb_nativethread_lock_t sig_check_lock = RB_NATIVETHREAD_LOCK_INIT;
+    sighandler_t old;
+    rb_native_mutex_lock(&sig_check_lock);
+    old = signal(sig, SIG_DFL);
     signal(sig, old);
+    rb_native_mutex_unlock(&sig_check_lock);
     func = old;
 #endif
     if (func == SIG_IGN) return 1;

@@ -664,6 +664,8 @@ ruby_nativethread_signal(int signum, sighandler_t handler)
 #endif
 #endif
 
+static rb_nativethread_lock_t sig_check_lock;
+
 static int
 signal_ignored(int sig)
 {
@@ -674,7 +676,6 @@ signal_ignored(int sig)
     if (sigaction(sig, NULL, &old) < 0) return FALSE;
     func = old.sa_handler;
 #else
-    static rb_nativethread_lock_t sig_check_lock = RB_NATIVETHREAD_LOCK_INIT;
     sighandler_t old;
     rb_native_mutex_lock(&sig_check_lock);
     old = signal(sig, SIG_DFL);
@@ -1508,6 +1509,7 @@ Init_signal(void)
     rb_define_method(rb_eSignal, "signo", esignal_signo, 0);
     rb_alias(rb_eSignal, rb_intern_const("signm"), rb_intern_const("message"));
     rb_define_method(rb_eInterrupt, "initialize", interrupt_init, -1);
+    rb_native_mutex_initialize(&sig_check_lock);
 
     // It should be ready to call rb_signal_exec()
     VM_ASSERT(GET_THREAD()->pending_interrupt_queue);
@@ -1560,3 +1562,13 @@ Init_signal(void)
 
     rb_enable_interrupt();
 }
+
+#if defined(HAVE_WORKING_FORK)
+void
+rb_signal_atfork(void)
+{
+    rb_native_mutex_initialize(&sig_check_lock);
+}
+#else
+void rb_signal_atfork(void) {}
+#endif

@@ -4933,6 +4933,7 @@ rb_thread_atfork_internal(rb_thread_t *th, void (*atfork)(rb_thread_t *, const r
 
     thread_sched_atfork(TH_SCHED(th));
     ubf_list_atfork();
+    rb_signal_atfork();
 
     // OK. Only this thread accesses:
     ccan_list_for_each(&vm->ractor.set, r, vmlr_node) {
@@ -4976,6 +4977,7 @@ terminate_atfork_i(rb_thread_t *th, const rb_thread_t *current_th)
 }
 
 void rb_fiber_atfork(rb_thread_t *);
+void rb_signal_atfork(void);
 void
 rb_thread_atfork(void)
 {

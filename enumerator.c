@@ -3977,7 +3977,7 @@ arith_seq_take(VALUE self, VALUE num)
         ary = rb_ary_new_capa(n);
         while (n > 0 && FIXABLE(i)) {
             rb_ary_push(ary, LONG2FIX(i));
-            i += unit;  /* FIXABLE + FIXABLE never overflow */
+            i += unit;  // FIXABLE + FIXABLE never overflow;
             --n;
         }
         if (n > 0) {

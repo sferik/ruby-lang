@@ -3963,9 +3963,7 @@ rb_arithmetic_sequence_beg_len_step(VALUE obj, long *begp, long *lenp, long *ste
 static VALUE
 arith_seq_first(int argc, VALUE *argv, VALUE self)
 {
-    VALUE b, e, s, ary;
-    long n;
-    int x;
+    VALUE b, e, s;
 
     rb_check_arity(argc, 0, 1);
 
@@ -3989,17 +3987,21 @@ arith_seq_first(int argc, VALUE *argv, VALUE self)
         return b;
     }
 
-    // TODO: the following code should be extracted as arith_seq_take
+    return arith_seq_take(self, argv[0], b, e, s, arith_seq_exclude_end_p(self));
+}
 
-    n = NUM2LONG(argv[0]);
+static VALUE
+arith_seq_take(VALUE self, VALUE n_val, VALUE b, VALUE e, VALUE s, int x)
+{
+    long n = NUM2LONG(n_val);
+    VALUE ary;
+
     if (n < 0) {
         rb_raise(rb_eArgError, "attempt to take negative size");
     }
     if (n == 0) {
         return rb_ary_new_capa(0);
     }
-
-    x = arith_seq_exclude_end_p(self);
 
     if (FIXNUM_P(b) && NIL_P(e) && FIXNUM_P(s)) {
         long i = FIX2LONG(b), unit = FIX2LONG(s);
@@ -4054,8 +4056,6 @@ arith_seq_first(int argc, VALUE *argv, VALUE self)
         return ary;
     }
     else if (RB_FLOAT_TYPE_P(b) || RB_FLOAT_TYPE_P(e) || RB_FLOAT_TYPE_P(s)) {
-        /* generate values like ruby_float_step */
-
         double unit = NUM2DBL(s);
         double beg = NUM2DBL(b);
         double end = NIL_P(e) ? (unit < 0 ? -1 : 1)*HUGE_VAL : NUM2DBL(e);
@@ -4093,7 +4093,7 @@ arith_seq_first(int argc, VALUE *argv, VALUE self)
         return ary;
     }
 
-    return rb_call_super(argc, argv);
+    return rb_call_super(1, &n_val);
 }
 
 static inline VALUE

@@ -4056,6 +4056,8 @@ arith_seq_take(VALUE self, VALUE n_val, VALUE b, VALUE e, VALUE s, int x)
         return ary;
     }
     else if (RB_FLOAT_TYPE_P(b) || RB_FLOAT_TYPE_P(e) || RB_FLOAT_TYPE_P(s)) {
+        /* generate values like ruby_float_step */
+
         double unit = NUM2DBL(s);
         double beg = NUM2DBL(b);
         double end = NIL_P(e) ? (unit < 0 ? -1 : 1)*HUGE_VAL : NUM2DBL(e);

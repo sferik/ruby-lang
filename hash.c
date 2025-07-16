@@ -1277,6 +1277,8 @@ struct hash_foreach_arg {
     VALUE hash;
     rb_foreach_func *func;
     VALUE arg;
+    const void *table;
+    unsigned bound;
 };
 
 static int
@@ -1460,7 +1462,15 @@ static VALUE
 hash_foreach_call(VALUE arg)
 {
     VALUE hash = ((struct hash_foreach_arg *)arg)->hash;
+    struct hash_foreach_arg *farg = (struct hash_foreach_arg *)arg;
     int ret = 0;
+    if (RHASH_AR_TABLE_P(hash)) {
+        farg->table = RHASH_AR_TABLE(hash);
+        farg->bound = RHASH_AR_TABLE_BOUND(hash);
+    }
+    else if (RHASH_ST_TABLE_P(hash)) {
+        farg->table = RHASH_ST_TABLE(hash);
+    }
     if (RHASH_AR_TABLE_P(hash)) {
         ret = ar_foreach_check(hash, hash_ar_foreach_iter,
                                    (st_data_t)arg, (st_data_t)Qundef);
@@ -1485,6 +1495,8 @@ rb_hash_foreach(VALUE hash, rb_foreach_func *func, VALUE farg)
     arg.hash = hash;
     arg.func = (rb_foreach_func *)func;
     arg.arg  = farg;
+    arg.table = NULL;
+    arg.bound = 0;
     if (RB_OBJ_FROZEN(hash)) {
         hash_foreach_call((VALUE)&arg);
     }

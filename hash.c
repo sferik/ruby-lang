@@ -116,6 +116,7 @@ VALUE rb_cHash_empty_frozen;
 static VALUE envtbl;
 static ID id_hash, id_flatten_bang;
 static ID id_hash_iter_lev;
+static ID id_hash_ar_gen;
 
 #define id_default idDefault
 
@@ -1293,6 +1294,25 @@ hash_iter_status_check(int status)
     return ST_CHECK;
 }
 
+static inline unsigned long
+hash_ar_gen_get(VALUE hash)
+{
+    VALUE genval = rb_ivar_get(hash, id_hash_ar_gen);
+    return NIL_P(genval) ? 0 : NUM2ULONG(genval);
+}
+
+static inline void
+hash_ar_gen_set(VALUE hash, unsigned long gen)
+{
+    rb_ivar_set_internal(hash, id_hash_ar_gen, ULONG2NUM(gen));
+}
+
+static inline void
+hash_ar_gen_inc(VALUE hash)
+{
+    hash_ar_gen_set(hash, hash_ar_gen_get(hash) + 1);
+}
+
 static int
 hash_ar_foreach_iter(st_data_t key, st_data_t value, st_data_t argp, int error)
 {
@@ -1300,8 +1320,14 @@ hash_ar_foreach_iter(st_data_t key, st_data_t value, st_data_t argp, int error)
 
     if (error) return ST_STOP;
 
+    unsigned long gen = hash_ar_gen_get(arg->hash);
+
     int status = (*arg->func)((VALUE)key, (VALUE)value, arg->arg);
-    /* TODO: rehash check? rb_raise(rb_eRuntimeError, "rehash occurred during iteration"); */
+
+    ensure_ar_table(arg->hash);
+    if (hash_ar_gen_get(arg->hash) != gen) {
+        rb_raise(rb_eRuntimeError, "rehash occurred during iteration");
+    }
 
     return hash_iter_status_check(status);
 }
@@ -1361,6 +1387,7 @@ hash_iterating_p(VALUE hash)
 {
     return iter_lev_in_flags(hash) > 0;
 }
+
 
 static void
 hash_iter_lev_inc(VALUE hash)
@@ -2017,6 +2044,7 @@ rb_hash_rehash(VALUE hash)
 
         hash_ar_free_and_clear_table(hash);
         ar_copy(hash, tmp);
+        hash_ar_gen_inc(hash);
     }
     else if (RHASH_ST_TABLE_P(hash)) {
         st_table *old_tab = RHASH_ST_TABLE(hash);
@@ -7377,6 +7405,7 @@ Init_Hash(void)
     id_hash = rb_intern_const("hash");
     id_flatten_bang = rb_intern_const("flatten!");
     id_hash_iter_lev = rb_make_internal_id();
+    id_hash_ar_gen = rb_make_internal_id();
 
     rb_cHash = rb_define_class("Hash", rb_cObject);
 

@@ -13,6 +13,7 @@
 
 #include "internal/gc.h"
 #include "internal/sanitizers.h"
+#include "internal/thread.h"
 
 #ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
@@ -2888,7 +2889,7 @@ static int
 timer_thread_set_timeout(rb_vm_t *vm)
 {
 #if 0
-    return 10; // ms
+    return RUBY_THREAD_TIMER_INTERVAL_MSEC; // ms
 #else
     int timeout = -1;
 
@@ -2904,7 +2905,7 @@ timer_thread_set_timeout(rb_vm_t *vm)
                            !ubf_threads_empty(),
                            (vm->ractor.sched.grq_cnt > 0));
 
-            timeout = 10; // ms
+            timeout = RUBY_THREAD_TIMER_INTERVAL_MSEC; // ms
             vm->ractor.sched.timeslice_wait_inf = false;
         }
         else {

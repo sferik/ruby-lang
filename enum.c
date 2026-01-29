@@ -242,7 +242,7 @@ count_i(RB_BLOCK_CALL_FUNC_ARGLIST(i, memop))
 
     ENUM_WANT_SVALUE();
 
-    if (rb_equal(i, memo->v1)) {
+    if (rb_eql(i, memo->v1)) {
         imemo_count_up(memo);
     }
     return Qnil;
@@ -403,7 +403,7 @@ find_index_i(RB_BLOCK_CALL_FUNC_ARGLIST(i, memop))
 
     ENUM_WANT_SVALUE();
 
-    if (rb_equal(i, memo->v2)) {
+    if (rb_eql(i, memo->v2)) {
         MEMO_V1_SET(memo, imemo_count_value(memo));
         rb_iter_break();
     }
@@ -2952,7 +2952,7 @@ member_i(RB_BLOCK_CALL_FUNC_ARGLIST(iter, args))
 {
     struct MEMO *memo = MEMO_CAST(args);
 
-    if (rb_equal(rb_enum_values_pack(argc, argv), memo->v1)) {
+    if (rb_eql(rb_enum_values_pack(argc, argv), memo->v1)) {
         MEMO_V2_SET(memo, Qtrue);
         rb_iter_break();
     }
@@ -3863,7 +3863,7 @@ chunk_ii(RB_BLOCK_CALL_FUNC_ARGLIST(i, _argp))
             argp->prev_elts = rb_ary_new3(1, i);
         }
         else {
-            if (rb_equal(argp->prev_value, v)) {
+            if (rb_eql(argp->prev_value, v)) {
                 rb_ary_push(argp->prev_elts, i);
             }
             else {

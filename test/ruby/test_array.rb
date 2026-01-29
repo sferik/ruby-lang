@@ -678,6 +678,13 @@ class TestArray < Test::Unit::TestCase
     assert_equal(2, assert_warning(/given block not used/) {a.count(1) {|x| x % 2 == 1 }})
     assert_raise(ArgumentError) { a.count(0, 1) }
 
+    # count uses eql? for comparison
+    a = @cls[1, 1.0, 1, 2.0, 2]
+    assert_equal(2, a.count(1))
+    assert_equal(1, a.count(1.0))
+    assert_equal(1, a.count(2))
+    assert_equal(1, a.count(2.0))
+
     bug8654 = '[ruby-core:56072]'
     assert_in_out_err [], <<-EOS, ["0"], [], bug8654
       a1 = []
@@ -724,9 +731,9 @@ class TestArray < Test::Unit::TestCase
     assert_equal(@cls[*('cab'..'cat').to_a], a)
 
     o = Object.new
-    def o.==(other); true; end
+    def o.eql?(other); true; end
     o2 = Object.new
-    def o2.==(other); true; end
+    def o2.eql?(other); true; end
     a = @cls[1, o, o2, 2]
     assert_equal(o2, a.delete(42))
     assert_equal([1, 2], a)
@@ -1114,6 +1121,15 @@ class TestArray < Test::Unit::TestCase
     assert_not_include(a, [1,2])
   end
 
+  def test_include_uses_eql
+    # include? uses eql? for comparison, not ==
+    a = @cls[1, 2.0, 'a']
+    assert_include(a, 1)
+    assert_not_include(a, 1.0)  # 1.eql?(1.0) is false
+    assert_include(a, 2.0)
+    assert_not_include(a, 2)    # 2.0.eql?(2) is false
+  end
+
   def test_monkey_patch_include?
     assert_separately([], "#{<<~"begin;"}\n#{<<~'end;'}", timeout: 30)
     begin;
@@ -1163,6 +1179,21 @@ class TestArray < Test::Unit::TestCase
     assert_nil(a.index([1,2]))
 
     assert_equal(1, assert_warn(/given block not used/) {a.index(99) {|x| x == 'cat' }})
+  end
+
+  def test_index_uses_eql
+    # index uses eql? for comparison, not ==
+    # This means 1 and 1.0 are distinguished
+    a = @cls[1, 1.0, 2]
+    assert_equal(0, a.index(1))
+    assert_equal(1, a.index(1.0))
+    assert_nil(a.index(1.to_r))  # Rational(1) is not eql? to Integer 1
+
+    # Custom eql? is respected
+    o = Object.new
+    def o.eql?(other); other == 42; end
+    a = @cls[1, o, 3]
+    assert_equal(1, a.index(42))
   end
 
   def test_values_at

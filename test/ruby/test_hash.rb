@@ -1372,7 +1372,9 @@ class TestHash < Test::Unit::TestCase
   def test_assoc
     assert_equal([3,4], @cls[1=>2, 3=>4, 5=>6].assoc(3))
     assert_nil(@cls[1=>2, 3=>4, 5=>6].assoc(4))
-    assert_equal([1.0,1], @cls[1.0=>1].assoc(1))
+    # assoc uses eql? for comparison, so 1.eql?(1.0) is false
+    assert_nil(@cls[1.0=>1].assoc(1))
+    assert_equal([1.0,1], @cls[1.0=>1].assoc(1.0))
   end
 
   def test_assoc_compare_by_identity

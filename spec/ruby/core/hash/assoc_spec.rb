@@ -33,10 +33,12 @@ describe "Hash#assoc" do
     h.assoc('pear').should == ['pear', :red]
   end
 
-  it "uses #== to compare the argument to the keys" do
+  it "uses #eql? to compare the argument to the keys" do
     @h[1.0] = :value
     1.should == 1.0
-    @h.assoc(1).should == [1.0, :value]
+    1.should_not eql(1.0)
+    @h.assoc(1).should be_nil
+    @h.assoc(1.0).should == [1.0, :value]
   end
 
   it "returns nil if the argument is not a key of the Hash" do

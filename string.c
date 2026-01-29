@@ -5634,7 +5634,7 @@ static int
 include_range_i(VALUE str, VALUE arg)
 {
     VALUE *argp = (VALUE *)arg;
-    if (!rb_equal(str, *argp)) return 0;
+    if (!rb_eql(str, *argp)) return 0;
     *argp = Qnil;
     return 1;
 }

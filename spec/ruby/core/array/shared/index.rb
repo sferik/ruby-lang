@@ -1,23 +1,23 @@
 require_relative '../shared/iterable_and_tolerating_size_increasing'
 
 describe :array_index, shared: true do
-  it "returns the index of the first element == to object" do
+  it "returns the index of the first element eql? to object" do
     x = mock('3')
-    def x.==(obj) 3 == obj; end
+    def x.eql?(obj) 3 == obj; end
 
     [2, x, 3, 1, 3, 1].send(@method, 3).should == 1
-    [2, 3.0, 3, x, 1, 3, 1].send(@method, x).should == 1
+    [2, 3, x, 1, 3, 1].send(@method, x).should == 2
   end
 
-  it "returns 0 if first element == to object" do
+  it "returns 0 if first element eql? to object" do
     [2, 1, 3, 2, 5].send(@method, 2).should == 0
   end
 
-  it "returns size-1 if only last element == to object" do
+  it "returns size-1 if only last element eql? to object" do
     [2, 1, 3, 1, 5].send(@method, 5).should == 4
   end
 
-  it "returns nil if no element == to object" do
+  it "returns nil if no element eql? to object" do
     [2, 1, 1, 1, 1].send(@method, 3).should == nil
   end
 

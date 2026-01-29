@@ -2204,8 +2204,8 @@ assert_equal '[0, 1, 2]', %q{
 # regression test for argument registers
 assert_equal 'true', %q{
   class Foo
-    def ==(other)
-      other == nil
+    def eql?(other)
+      other.is_a?(Foo)
     end
   end
 

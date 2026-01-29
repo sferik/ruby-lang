@@ -2228,7 +2228,7 @@ rb_ary_index(int argc, VALUE *argv, VALUE ary)
         rb_warn("given block not used");
     for (i=0; i<RARRAY_LEN(ary); i++) {
         VALUE e = RARRAY_AREF(ary, i);
-        if (rb_equal(e, val)) {
+        if (rb_eql(e, val)) {
             return LONG2NUM(i);
         }
     }
@@ -2286,7 +2286,7 @@ rb_ary_rindex(int argc, VALUE *argv, VALUE ary)
         rb_warn("given block not used");
     while (i--) {
         VALUE e = RARRAY_AREF(ary, i);
-        if (rb_equal(e, val)) {
+        if (rb_eql(e, val)) {
             return LONG2NUM(i);
         }
         if (i > RARRAY_LEN(ary)) {
@@ -4171,7 +4171,7 @@ rb_ary_delete(VALUE ary, VALUE item)
     for (i1 = i2 = 0; i1 < RARRAY_LEN(ary); i1++) {
         VALUE e = RARRAY_AREF(ary, i1);
 
-        if (rb_equal(e, item)) {
+        if (rb_eql(e, item)) {
             v = e;
             continue;
         }
@@ -5277,7 +5277,7 @@ rb_ary_assoc(VALUE ary, VALUE key)
     for (i = 0; i < RARRAY_LEN(ary); ++i) {
         v = rb_check_array_type(RARRAY_AREF(ary, i));
         if (!NIL_P(v) && RARRAY_LEN(v) > 0 &&
-            rb_equal(RARRAY_AREF(v, 0), key))
+            rb_eql(RARRAY_AREF(v, 0), key))
             return v;
     }
     return Qnil;
@@ -5310,7 +5310,7 @@ rb_ary_rassoc(VALUE ary, VALUE value)
         v = rb_check_array_type(RARRAY_AREF(ary, i));
         if (RB_TYPE_P(v, T_ARRAY) &&
             RARRAY_LEN(v) > 1 &&
-            rb_equal(RARRAY_AREF(v, 1), value))
+            rb_eql(RARRAY_AREF(v, 1), value))
             return v;
     }
     return Qnil;
@@ -5502,7 +5502,7 @@ rb_ary_includes(VALUE ary, VALUE item)
 
     for (i=0; i<RARRAY_LEN(ary); i++) {
         e = RARRAY_AREF(ary, i);
-        if (rb_equal(e, item)) {
+        if (rb_eql(e, item)) {
             return Qtrue;
         }
     }
@@ -6619,7 +6619,7 @@ rb_ary_count(int argc, VALUE *argv, VALUE ary)
             rb_warn("given block not used");
         }
         for (i = 0; i < RARRAY_LEN(ary); i++) {
-            if (rb_equal(RARRAY_AREF(ary, i), obj)) n++;
+            if (rb_eql(RARRAY_AREF(ary, i), obj)) n++;
         }
     }
 

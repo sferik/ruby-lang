@@ -2283,7 +2283,7 @@ key_i(VALUE key, VALUE value, VALUE arg)
 {
     VALUE *args = (VALUE *)arg;
 
-    if (rb_equal(value, args[0])) {
+    if (rb_eql(value, args[0])) {
         args[1] = key;
         return ST_STOP;
     }
@@ -3869,7 +3869,7 @@ rb_hash_search_value(VALUE key, VALUE value, VALUE arg)
 {
     VALUE *data = (VALUE *)arg;
 
-    if (rb_equal(value, data[1])) {
+    if (rb_eql(value, data[1])) {
         data[0] = Qtrue;
         return ST_STOP;
     }
@@ -4366,7 +4366,7 @@ assoc_i(VALUE key, VALUE val, VALUE arg)
 {
     VALUE *args = (VALUE *)arg;
 
-    if (RTEST(rb_equal(args[0], key))) {
+    if (rb_eql(args[0], key)) {
         args[1] = rb_assoc_new(key, val);
         return ST_STOP;
     }
@@ -4429,7 +4429,7 @@ rassoc_i(VALUE key, VALUE val, VALUE arg)
 {
     VALUE *args = (VALUE *)arg;
 
-    if (RTEST(rb_equal(args[0], val))) {
+    if (rb_eql(args[0], val)) {
         args[1] = rb_assoc_new(key, val);
         return ST_STOP;
     }

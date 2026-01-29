@@ -1803,7 +1803,10 @@ class Gem::Specification < Gem::BasicSpecification
   end
 
   def eql?(other) # :nodoc:
-    self.class === other && same_attributes?(other)
+    self.class === other &&
+      name == other.name &&
+      version == other.version &&
+      platform == other.platform
   end
 
   ##
@@ -2251,15 +2254,6 @@ class Gem::Specification < Gem::BasicSpecification
   def runtime_dependencies
     dependencies.select(&:runtime?)
   end
-
-  ##
-  # True if this gem has the same attributes as +other+.
-
-  def same_attributes?(spec)
-    @@attributes.all? {|name, _default| send(name) == spec.send(name) }
-  end
-
-  private :same_attributes?
 
   ##
   # Checks if this specification meets the requirement of +dependency+.

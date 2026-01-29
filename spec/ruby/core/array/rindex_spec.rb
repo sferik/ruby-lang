@@ -7,28 +7,28 @@ require_relative '../enumerable/shared/enumeratorized'
 # https://blade.ruby-lang.org/ruby-core/23633
 
 describe "Array#rindex" do
-  it "returns the first index backwards from the end where element == to object" do
+  it "returns the first index backwards from the end where element eql? to object" do
     key = 3
     uno = mock('one')
     dos = mock('two')
     tres = mock('three')
-    tres.should_receive(:==).any_number_of_times.and_return(false)
-    dos.should_receive(:==).any_number_of_times.and_return(true)
-    uno.should_not_receive(:==)
+    tres.should_receive(:eql?).any_number_of_times.and_return(false)
+    dos.should_receive(:eql?).any_number_of_times.and_return(true)
+    uno.should_not_receive(:eql?)
     ary = [uno, dos, tres]
 
     ary.rindex(key).should == 1
   end
 
-  it "returns size-1 if last element == to object" do
+  it "returns size-1 if last element eql? to object" do
     [2, 1, 3, 2, 5].rindex(5).should == 4
   end
 
-  it "returns 0 if only first element == to object" do
+  it "returns 0 if only first element eql? to object" do
     [2, 1, 3, 1, 5].rindex(2).should == 0
   end
 
-  it "returns nil if no element == to object" do
+  it "returns nil if no element eql? to object" do
     [1, 1, 3, 2, 1, 3].rindex(4).should == nil
   end
 

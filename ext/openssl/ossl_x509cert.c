@@ -1006,5 +1006,6 @@ Init_ossl_x509cert(void)
     rb_define_method(cX509Cert, "extensions=", ossl_x509_set_extensions, 1);
     rb_define_method(cX509Cert, "add_extension", ossl_x509_add_extension, 1);
     rb_define_method(cX509Cert, "==", ossl_x509_eq, 1);
+    rb_define_method(cX509Cert, "eql?", ossl_x509_eq, 1);
     rb_define_method(cX509Cert, "tbs_bytes", ossl_x509_tbs_bytes, 0);
 }

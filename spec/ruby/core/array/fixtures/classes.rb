@@ -121,7 +121,7 @@ module ArraySpecs
   class MyRange < Range; end
 
   class AssocKey
-    def ==(other); other == 'it'; end
+    def eql?(other); other == 'it'; end
   end
 
   class D

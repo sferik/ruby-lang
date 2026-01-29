@@ -8,7 +8,8 @@ describe :hash_value_p, shared: true do
     h.send(@method, 5).should == false
   end
 
-  it "uses == semantics for comparing values" do
-    { 5 => 2.0 }.send(@method, 2).should == true
+  it "uses eql? semantics for comparing values" do
+    { 5 => 2.0 }.send(@method, 2).should == false
+    { 5 => 2.0 }.send(@method, 2.0).should == true
   end
 end

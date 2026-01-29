@@ -314,6 +314,7 @@ void Init_ossl_ssl_session(void)
     rb_define_method(cSSLSession, "initialize_copy", ossl_ssl_session_initialize_copy, 1);
 
     rb_define_method(cSSLSession, "==", ossl_ssl_session_eq, 1);
+    rb_define_method(cSSLSession, "eql?", ossl_ssl_session_eq, 1);
 
     rb_define_method(cSSLSession, "time", ossl_ssl_session_get_time, 0);
     rb_define_method(cSSLSession, "time=", ossl_ssl_session_set_time, 1);

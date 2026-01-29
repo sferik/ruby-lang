@@ -20,15 +20,17 @@ describe :hash_index, shared: true do
     end
   end
 
-  it "compares values using ==" do
+  it "compares values using eql?" do
     suppress_warning do # for Hash#index
-      { 1 => 0 }.send(@method, 0.0).should == 1
-      { 1 => 0.0 }.send(@method, 0).should == 1
+      { 1 => 0 }.send(@method, 0.0).should be_nil
+      { 1 => 0.0 }.send(@method, 0).should be_nil
+      { 1 => 0 }.send(@method, 0).should == 1
+      { 1 => 0.0 }.send(@method, 0.0).should == 1
     end
 
     needle = mock('needle')
     inhash = mock('inhash')
-    inhash.should_receive(:==).with(needle).and_return(true)
+    inhash.should_receive(:eql?).with(needle).and_return(true)
 
     suppress_warning do # for Hash#index
       { 1 => inhash }.send(@method, needle).should == 1

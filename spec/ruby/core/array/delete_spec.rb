@@ -2,9 +2,9 @@ require_relative '../../spec_helper'
 require_relative 'fixtures/classes'
 
 describe "Array#delete" do
-  it "removes elements that are #== to object" do
+  it "removes elements that are #eql? to object" do
     x = mock('delete')
-    def x.==(other) 3 == other end
+    def x.eql?(other) 3 == other end
 
     a = [1, 2, 3, x, 4, 3, 5, x]
     a.delete mock('not contained')

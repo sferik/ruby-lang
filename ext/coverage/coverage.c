@@ -265,12 +265,18 @@ method_coverage_i(const struct rb_coverage_method_data *method, void *data)
     }
 }
 
+struct peek_result_arg
+{
+    VALUE ncoverages;
+    int mode;
+};
+
 static int
 coverage_peek_result_i(st_data_t key, st_data_t val, st_data_t h)
 {
     VALUE path = (VALUE)key;
     VALUE coverage = (VALUE)val;
-    VALUE coverages = (VALUE)h;
+    struct peek_result_arg *arg = (struct peek_result_arg *)h;
     if (current_mode == 0) {
         /* compatible mode */
         VALUE lines = rb_ary_dup(RARRAY_AREF(coverage, COVERAGE_INDEX_LINES));
@@ -280,7 +286,7 @@ coverage_peek_result_i(st_data_t key, st_data_t val, st_data_t h)
     else {
         VALUE h = rb_hash_new();
 
-        if (current_mode & COVERAGE_TARGET_LINES) {
+        if (arg->mode & COVERAGE_TARGET_LINES) {
             VALUE lines = RARRAY_AREF(coverage, COVERAGE_INDEX_LINES);
             const char *kw = (current_mode & COVERAGE_TARGET_ONESHOT_LINES) ? "oneshot_lines" : "lines";
             lines = rb_ary_dup(lines);
@@ -288,25 +294,92 @@ coverage_peek_result_i(st_data_t key, st_data_t val, st_data_t h)
             rb_hash_aset(h, ID2SYM(rb_intern(kw)), lines);
         }
 
-        if (current_mode & COVERAGE_TARGET_BRANCHES) {
+        if (arg->mode & COVERAGE_TARGET_BRANCHES) {
             VALUE branches = RARRAY_AREF(coverage, COVERAGE_INDEX_BRANCHES);
             rb_hash_aset(h, ID2SYM(rb_intern("branches")), branch_coverage(branches));
         }
 
-        if (current_mode & COVERAGE_TARGET_METHODS) {
+        if (arg->mode & COVERAGE_TARGET_METHODS) {
             rb_hash_aset(h, ID2SYM(rb_intern("methods")), rb_hash_new());
         }
 
         coverage = h;
     }
 
-    rb_hash_aset(coverages, path, coverage);
+    rb_hash_aset(arg->ncoverages, path, coverage);
     return ST_CONTINUE;
+}
+
+static VALUE
+coverage_peek_result(int mode)
+{
+    VALUE coverages = rb_get_coverages();
+    struct peek_result_arg arg;
+    if (!RTEST(coverages)) {
+        rb_raise(rb_eRuntimeError, "coverage measurement is not enabled");
+    }
+
+    arg.ncoverages = rb_hash_new();
+    arg.mode = mode;
+    rb_hash_foreach(coverages, coverage_peek_result_i, (st_data_t)&arg);
+
+    if (mode & COVERAGE_TARGET_METHODS) {
+        rb_coverage_each_method(method_coverage_i, &arg.ncoverages);
+    }
+
+    rb_hash_freeze(arg.ncoverages);
+    return arg.ncoverages;
+}
+
+static int
+peek_result_target(VALUE type)
+{
+    if (type == ID2SYM(rb_intern("lines"))) {
+        if ((current_mode & COVERAGE_TARGET_ONESHOT_LINES) ||
+            !(current_mode == 0 || (current_mode & COVERAGE_TARGET_LINES)))
+            rb_raise(rb_eRuntimeError, "lines coverage is not enabled");
+        return COVERAGE_TARGET_LINES;
+    }
+    if (type == ID2SYM(rb_intern("oneshot_lines"))) {
+        if (!(current_mode & COVERAGE_TARGET_ONESHOT_LINES))
+            rb_raise(rb_eRuntimeError, "oneshot_lines coverage is not enabled");
+        return COVERAGE_TARGET_LINES | COVERAGE_TARGET_ONESHOT_LINES;
+    }
+    if (type == ID2SYM(rb_intern("branches"))) {
+        if (!(current_mode & COVERAGE_TARGET_BRANCHES))
+            rb_raise(rb_eRuntimeError, "branches coverage is not enabled");
+        return COVERAGE_TARGET_BRANCHES;
+    }
+    if (type == ID2SYM(rb_intern("methods"))) {
+        if (!(current_mode & COVERAGE_TARGET_METHODS))
+            rb_raise(rb_eRuntimeError, "methods coverage is not enabled");
+        return COVERAGE_TARGET_METHODS;
+    }
+    rb_raise(rb_eArgError, "unknown coverage type: %+"PRIsVALUE, type);
+    UNREACHABLE_RETURN(0);
+}
+
+static int
+peek_result_mode(VALUE only)
+{
+    if (RB_TYPE_P(only, T_ARRAY)) {
+        int mode = 0;
+        long i;
+        if (RARRAY_LEN(only) == 0) {
+            rb_raise(rb_eArgError, "no coverage types given");
+        }
+        for (i = 0; i < RARRAY_LEN(only); i++) {
+            mode |= peek_result_target(RARRAY_AREF(only, i));
+        }
+        return mode;
+    }
+    return peek_result_target(only);
 }
 
 /*
  *  call-seq:
- *     Coverage.peek_result  => hash
+ *     Coverage.peek_result             => hash
+ *     Coverage.peek_result(only: type) => hash
  *
  * Returns a hash that contains filename as key and coverage array as value.
  * This is the same as <tt>Coverage.result(stop: false, clear: false)</tt>.
@@ -315,24 +388,40 @@ coverage_peek_result_i(st_data_t key, st_data_t val, st_data_t h)
  *     "file.rb" => [1, 2, nil],
  *     ...
  *   }
+ *
+ * The +only+ keyword restricts the result to the given coverage type, one
+ * of +:lines+, +:oneshot_lines+, +:branches+ or +:methods+, or an Array of
+ * them. Each file's hash then contains only those keys, and the result for
+ * the other measured types is not built at all, which makes a filtered
+ * peek considerably cheaper than a full one. Requesting a type that is not
+ * being measured raises a RuntimeError.
+ *
+ *   Coverage.start(lines: true, branches: true)
+ *   Coverage.peek_result(only: :lines)
+ *   # => {"file.rb" => {lines: [1, 2, nil]}, ...}
  */
 static VALUE
-rb_coverage_peek_result(VALUE klass)
+rb_coverage_peek_result(int argc, VALUE *argv, VALUE klass)
 {
-    VALUE coverages = rb_get_coverages();
-    VALUE ncoverages = rb_hash_new();
-    if (!RTEST(coverages)) {
-        rb_raise(rb_eRuntimeError, "coverage measurement is not enabled");
+    VALUE opt;
+    int mode = current_mode;
+
+    rb_scan_args(argc, argv, "0:", &opt);
+
+    if (!NIL_P(opt)) {
+        static ID keyword_ids[1];
+        VALUE only;
+        if (!keyword_ids[0]) keyword_ids[0] = rb_intern_const("only");
+        rb_get_kwargs(opt, keyword_ids, 0, 1, &only);
+        if (only != Qundef) {
+            if (!RTEST(rb_get_coverages())) {
+                rb_raise(rb_eRuntimeError, "coverage measurement is not enabled");
+            }
+            mode = peek_result_mode(only);
+        }
     }
 
-    rb_hash_foreach(coverages, coverage_peek_result_i, ncoverages);
-
-    if (current_mode & COVERAGE_TARGET_METHODS) {
-        rb_coverage_each_method(method_coverage_i, &ncoverages);
-    }
-
-    rb_hash_freeze(ncoverages);
-    return ncoverages;
+    return coverage_peek_result(mode);
 }
 
 
@@ -388,7 +477,7 @@ rb_coverage_result(int argc, VALUE *argv, VALUE klass)
         clear = RTEST(rb_hash_lookup(opt, ID2SYM(rb_intern("clear"))));
     }
 
-    ncoverages = rb_coverage_peek_result(klass);
+    ncoverages = coverage_peek_result(current_mode);
     if (stop && !clear) {
         rb_warn("stop implies clear");
         clear = 1;
@@ -666,7 +755,7 @@ Init_coverage(void)
     rb_define_module_function(rb_mCoverage, "resume", rb_coverage_resume, 0);
     rb_define_module_function(rb_mCoverage, "suspend", rb_coverage_suspend, 0);
     rb_define_module_function(rb_mCoverage, "result", rb_coverage_result, -1);
-    rb_define_module_function(rb_mCoverage, "peek_result", rb_coverage_peek_result, 0);
+    rb_define_module_function(rb_mCoverage, "peek_result", rb_coverage_peek_result, -1);
     rb_define_module_function(rb_mCoverage, "state", rb_coverage_state, 0);
     rb_define_module_function(rb_mCoverage, "running?", rb_coverage_running, 0);
     rb_global_variable(&cme2counter);

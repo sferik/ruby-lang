@@ -127,6 +127,15 @@ Note: We're only listing outstanding class updates.
 
 ## Stdlib updates
 
+* Coverage
+
+    * `Coverage.peek_result` now accepts an `only:` keyword that
+      restricts the result to the given coverage type (or Array of
+      types): `Coverage.peek_result(only: :lines)`.  Building the
+      result for the other measured types is skipped entirely, which
+      makes frequent peeks affordable for per-test coverage tracking
+      even when branch and method coverage are enabled.
+
 * Psych
 
     * An experimental libfyaml backend has been added.  It is only

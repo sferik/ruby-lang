@@ -1058,6 +1058,111 @@ class TestCoverage < Test::Unit::TestCase
     }
   end
 
+  def test_peek_result_only
+    Dir.mktmpdir {|tmp|
+      Dir.chdir(tmp) {
+        File.open("test.rb", "w") do |f|
+          f.puts "def foo(x)"
+          f.puts "  if x > 0"
+          f.puts "    :pos"
+          f.puts "  else"
+          f.puts "    :non_pos"
+          f.puts "  end"
+          f.puts "end"
+        end
+
+        assert_separately(%w[-rcoverage], "#{<<~"begin;"}\n#{<<~'end;'}")
+        begin;
+          Coverage.start(lines: true, branches: true, methods: true)
+          tmp = Dir.pwd
+          f = tmp + "/test.rb"
+          require f
+          foo(1)
+          full = Coverage.peek_result[f]
+          assert_equal({lines: full[:lines]}, Coverage.peek_result(only: :lines)[f])
+          assert_equal({branches: full[:branches]}, Coverage.peek_result(only: :branches)[f])
+          assert_equal({methods: full[:methods]}, Coverage.peek_result(only: :methods)[f])
+          assert_equal({lines: full[:lines], branches: full[:branches]}, Coverage.peek_result(only: [:lines, :branches])[f])
+        end;
+      }
+    }
+  end
+
+  def test_peek_result_only_oneshot_lines
+    Dir.mktmpdir {|tmp|
+      Dir.chdir(tmp) {
+        File.open("test.rb", "w") do |f|
+          f.puts "def foo(x)"
+          f.puts "  :ok"
+          f.puts "end"
+        end
+
+        assert_separately(%w[-rcoverage], "#{<<~"begin;"}\n#{<<~'end;'}")
+        begin;
+          Coverage.start(oneshot_lines: true)
+          tmp = Dir.pwd
+          f = tmp + "/test.rb"
+          require f
+          foo(1)
+          full = Coverage.peek_result[f]
+          assert_equal({oneshot_lines: full[:oneshot_lines]}, Coverage.peek_result(only: :oneshot_lines)[f])
+          assert_raise_with_message(RuntimeError, /lines coverage is not enabled/) do
+            Coverage.peek_result(only: :lines)
+          end
+        end;
+      }
+    }
+  end
+
+  def test_peek_result_only_in_compatible_mode
+    Dir.mktmpdir {|tmp|
+      Dir.chdir(tmp) {
+        File.open("test.rb", "w") do |f|
+          f.puts "def foo(x)"
+          f.puts "  :ok"
+          f.puts "end"
+        end
+
+        assert_separately(%w[-rcoverage], "#{<<~"begin;"}\n#{<<~'end;'}")
+        begin;
+          Coverage.start
+          tmp = Dir.pwd
+          f = tmp + "/test.rb"
+          require f
+          foo(1)
+          assert_equal(Coverage.peek_result[f], Coverage.peek_result(only: :lines)[f])
+          assert_raise_with_message(RuntimeError, /branches coverage is not enabled/) do
+            Coverage.peek_result(only: :branches)
+          end
+        end;
+      }
+    }
+  end
+
+  def test_peek_result_only_with_invalid_type
+    assert_separately(%w[-rcoverage], "#{<<~"begin;"}\n#{<<~'end;'}")
+    begin;
+      assert_raise_with_message(RuntimeError, /coverage measurement is not enabled/) do
+        Coverage.peek_result(only: :lines)
+      end
+      Coverage.start(lines: true)
+      assert_raise_with_message(ArgumentError, /unknown coverage type: :wat/) do
+        Coverage.peek_result(only: :wat)
+      end
+      assert_raise(ArgumentError) { Coverage.peek_result(only: []) }
+      assert_raise(ArgumentError) { Coverage.peek_result(wat: :lines) }
+      assert_raise_with_message(RuntimeError, /branches coverage is not enabled/) do
+        Coverage.peek_result(only: :branches)
+      end
+      assert_raise_with_message(RuntimeError, /methods coverage is not enabled/) do
+        Coverage.peek_result(only: :methods)
+      end
+      assert_raise_with_message(RuntimeError, /oneshot_lines coverage is not enabled/) do
+        Coverage.peek_result(only: :oneshot_lines)
+      end
+    end;
+  end
+
   def test_coverage_state
     assert_in_out_err(ARGV, <<-"end;", [":idle", ":running", ":running", ":idle"], [])
       p Coverage.state
